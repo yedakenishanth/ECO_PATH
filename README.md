@@ -60,6 +60,12 @@ This is a static app — no build tools or dependencies to install.
 └── LICENSE
 ```
 
+## Changelog
+
+- **Fix:** `getLevel` had an off-by-one against `levelPct`, so users sitting on 500–999 (etc.) EcoCredits saw a progress bar stuck at 100% while still labeled the lower level. Both now agree on the same threshold bands.
+- **Fix:** form labels weren't linked to their inputs (`for`/`id`); route planner inputs relied on placeholder text only. Both fixed for screen readers.
+- **Fix:** the Eco Coach and landing page implied a live, always-on AI connection ("Powered by Claude AI · Always online", "AI-POWERED", "AI CARBON ENGINE"). Copy now reflects that the AI calls fall back to built-in logic without a backend proxy — matches what's already disclosed in this README.
+
 ## Known Limitations
 
 - **No backend/auth** — "Sign up" and "Sign in" just set a display name; there's no real authentication or per-user accounts.
@@ -67,13 +73,25 @@ This is a static app — no build tools or dependencies to install.
 - **Public API rate limits** — Nominatim and OSRM's public demo servers are used directly from the client with no API key. They're rate-limited and not meant for production traffic; expect throttling under heavy use.
 - **Single-user persistence** — progress is saved to the browser's `localStorage`, so it's local to one device/browser, not synced across devices.
 
+## Testing
+
+Pure logic (level thresholds, points math, CO2 math) is covered by a small dependency-free Node test suite:
+
+```bash
+node test.js
+```
+
+Runs automatically on every push/PR via GitHub Actions (see `.github/workflows/ci.yml`).
+
 ## Roadmap
 
 - [ ] Swap `localStorage` persistence for a real backend (e.g. Supabase/Firebase) with authentication and a genuine multi-user leaderboard
 - [ ] Move the Anthropic API calls behind a small server-side proxy so the Eco Coach and AI route analysis actually work (an API key can't safely live in client-side code)
-- [ ] Automated tests for the pure logic (`getLevel`, `logTrip`, badge checks) with Vitest
-- [ ] GitHub Actions workflow for linting/tests + auto-deploy to GitHub Pages
-- [ ] Basic accessibility pass (form labels, ARIA live regions for the toast/live-trip panel, keyboard nav)
+- [x] Automated tests for the pure logic (`getLevel`, `levelPct`, `logTrip`) — see `test.js`
+- [x] GitHub Actions workflow for tests on push/PR
+- [ ] Auto-deploy to GitHub Pages via Actions
+- [x] Partial accessibility pass — labels now linked to inputs via `for`/`id`
+- [ ] Further accessibility: ARIA live regions for the toast/live-trip panel, full keyboard nav audit
 
 ## Contributing
 

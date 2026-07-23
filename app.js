@@ -150,7 +150,7 @@ const LEVEL_THRESHOLDS = [0,500,1000,1500,2000,3000,5000];
 const LEVEL_NAMES = ['','Green Newcomer','Eco Explorer','Eco Traveler','Eco Commuter','Eco Champion','Eco Legend'];
 function getLevel(pts){
   let n=1;
-  for(let i=1;i<LEVEL_THRESHOLDS.length;i++){if(pts>=LEVEL_THRESHOLDS[i])n=i;}
+  for(let i=1;i<LEVEL_THRESHOLDS.length;i++){if(pts>=LEVEL_THRESHOLDS[i-1])n=i;}
   return{n,title:LEVEL_NAMES[n],next:LEVEL_THRESHOLDS[Math.min(n,LEVEL_THRESHOLDS.length-1)]};
 }
 function levelPct(pts){
@@ -440,6 +440,7 @@ function renderPlanner(){
           <span class="route-input-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           </span>
+          <label for="p-from" class="sr-only">From location</label>
           <input class="route-field" type="text" id="p-from" placeholder="From: e.g. London Bridge" autocomplete="off">
         </div>
         <div class="route-divider">
@@ -451,6 +452,7 @@ function renderPlanner(){
           <span class="route-input-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
+          <label for="p-to" class="sr-only">To location</label>
           <input class="route-field" type="text" id="p-to" placeholder="To: e.g. Canary Wharf" autocomplete="off">
         </div>
       </div>
@@ -879,7 +881,7 @@ function renderCoach(){
         <div class="coach-avatar"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 20c0-4.42-3.58-8-8-8s-8 3.58-8 8"/></svg></div>
         <div>
           <div class="coach-name">Eco Coach</div>
-          <div class="coach-status"><span class="status-dot"></span> Powered by Claude AI · Always online</div>
+          <div class="coach-status"><span class="status-dot"></span> AI-assisted · falls back to built-in tips if offline</div>
         </div>
         <div style="margin-left:auto;font-size:11px;color:var(--gray4);font-family:var(--mono);text-align:right">
           <div>${state.ecoPoints.toLocaleString()} credits</div>
