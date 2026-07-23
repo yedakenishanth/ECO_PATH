@@ -30,30 +30,51 @@ function escapeHtml(str){
 }
 
 // ══════════════════════════════════════════
-//  PERSISTENCE (localStorage)
+//  STORAGE ABSTRACTION
+//  A thin get/set/remove layer over localStorage. Swapping to a real
+//  backend later (REST/Supabase/Firebase) means changing the three
+//  functions in this block only — nothing else in the app should
+//  touch `localStorage` directly.
+// ══════════════════════════════════════════
+const storage={
+  get(key){
+    try{
+      const raw=localStorage.getItem(key);
+      return raw===null?null:JSON.parse(raw);
+    }catch(e){
+      console.warn(`EcoPath: could not read "${key}" from storage`,e);
+      return null;
+    }
+  },
+  set(key,value){
+    try{
+      localStorage.setItem(key,JSON.stringify(value));
+      return true;
+    }catch(e){
+      console.warn(`EcoPath: could not write "${key}" to storage`,e);
+      return false;
+    }
+  },
+  remove(key){
+    try{localStorage.removeItem(key);}catch(e){}
+  }
+};
+
+// ══════════════════════════════════════════
+//  PERSISTENCE (app state, via the storage abstraction above)
 // ══════════════════════════════════════════
 const STORAGE_KEY='ecopath_state_v1';
 function saveState(){
-  try{
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
-  }catch(e){
-    console.warn('EcoPath: could not save state to localStorage',e);
-  }
+  storage.set(STORAGE_KEY,state);
 }
 function loadState(){
-  try{
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(!raw)return false;
-    const saved=JSON.parse(raw);
-    Object.assign(state,saved);
-    return true;
-  }catch(e){
-    console.warn('EcoPath: could not load saved state',e);
-    return false;
-  }
+  const saved=storage.get(STORAGE_KEY);
+  if(!saved)return false;
+  Object.assign(state,saved);
+  return true;
 }
 function resetState(){
-  try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
+  storage.remove(STORAGE_KEY);
   location.reload();
 }
 
@@ -352,7 +373,7 @@ function renderDashboard(){
     <div class="card">
       <div class="card-title">Recent Trips</div>
       ${state.trips.length===0?`<div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/></svg></div><p>No trips logged yet</p></div>`:
-      [...state.trips].reverse().slice(0,4).map(t=>{const m=MODES.find(x=>x.id===t.mode);return`<div class="trip-item"><div class="trip-mode-badge" style="background:${m.bg};color:${m.color}">${m.emoji}</div><div class="trip-info"><div class="trip-route">${t.from} → ${t.to}</div><div class="trip-meta">${t.distKm.toFixed(1)} km · ${new Date(t.date).toLocaleDateString()}</div></div><div class="trip-stats"><div class="trip-saved">-${t.co2Saved.toFixed(2)} kg</div><div class="trip-pts">+${t.pts} pts</div></div></div>`;}).join('')}
+      [...state.trips].reverse().slice(0,4).map(t=>{const m=MODES.find(x=>x.id===t.mode);return`<div class="trip-item"><div class="trip-mode-badge" style="background:${m.bg};color:${m.color}">${m.emoji}</div><div class="trip-info"><div class="trip-route">${escapeHtml(t.from)} → ${escapeHtml(t.to)}</div><div class="trip-meta">${t.distKm.toFixed(1)} km · ${new Date(t.date).toLocaleDateString()}</div></div><div class="trip-stats"><div class="trip-saved">-${t.co2Saved.toFixed(2)} kg</div><div class="trip-pts">+${t.pts} pts</div></div></div>`;}).join('')}
     </div>
     <div class="card">
       <div class="card-title">Quick Actions</div>
@@ -851,7 +872,7 @@ function renderTracker(){
             const m=MODES.find(x=>x.id===t.mode);
             return`<tr>
               <td><div class="mode-tag" style="background:${m.bg};color:${m.color}">${m.emoji} ${m.label}</div></td>
-              <td>${t.from} → ${t.to}</td>
+              <td>${escapeHtml(t.from)} → ${escapeHtml(t.to)}</td>
               <td style="font-family:var(--mono)">${t.distKm.toFixed(2)} km</td>
               <td style="color:var(--g6);font-weight:700;font-family:var(--mono)">${t.co2Saved.toFixed(3)} kg</td>
               <td style="color:var(--red);font-family:var(--mono)">${t.co2Emitted.toFixed(3)} kg</td>
@@ -994,7 +1015,7 @@ function addMsg(role,text){
   if(role==='ai'){
     row.innerHTML=`<div class="msg-ai-avatar"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 20c0-4.42-3.58-8-8-8s-8 3.58-8 8"/></svg></div><div class="msg-bubble ai">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
   } else {
-    row.innerHTML=`<div class="msg-bubble user">${text}</div>`;
+    row.innerHTML=`<div class="msg-bubble user">${escapeHtml(text)}</div>`;
   }
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }

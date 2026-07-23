@@ -62,6 +62,8 @@ This is a static app — no build tools or dependencies to install.
 
 ## Changelog
 
+- **Fix (security):** trip origin/destination text was rendered via raw `innerHTML` in two places (Dashboard's Recent Trips card, Carbon Tracker's trip table) without escaping, and the Eco Coach chat echoed your own typed message unescaped too — all three now go through the existing `escapeHtml()` helper.
+- **Refactor:** persistence now goes through a small `storage.get()/set()/remove()` abstraction instead of calling `localStorage` directly everywhere, so swapping in a real backend later only touches one block of code.
 - **Fix:** sign-up/sign-in now validate email format and require a name and an 8+ character password before letting you in, instead of accepting any input silently. Still not real authentication — see Known Limitations.
 - **Fix:** `getLevel` had an off-by-one against `levelPct`, so users sitting on 500–999 (etc.) EcoCredits saw a progress bar stuck at 100% while still labeled the lower level. Both now agree on the same threshold bands.
 - **Fix:** form labels weren't linked to their inputs (`for`/`id`); route planner inputs relied on placeholder text only. Both fixed for screen readers.
