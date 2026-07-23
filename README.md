@@ -62,13 +62,14 @@ This is a static app — no build tools or dependencies to install.
 
 ## Changelog
 
+- **Fix:** sign-up/sign-in now validate email format and require a name and an 8+ character password before letting you in, instead of accepting any input silently. Still not real authentication — see Known Limitations.
 - **Fix:** `getLevel` had an off-by-one against `levelPct`, so users sitting on 500–999 (etc.) EcoCredits saw a progress bar stuck at 100% while still labeled the lower level. Both now agree on the same threshold bands.
 - **Fix:** form labels weren't linked to their inputs (`for`/`id`); route planner inputs relied on placeholder text only. Both fixed for screen readers.
 - **Fix:** the Eco Coach and landing page implied a live, always-on AI connection ("Powered by Claude AI · Always online", "AI-POWERED", "AI CARBON ENGINE"). Copy now reflects that the AI calls fall back to built-in logic without a backend proxy — matches what's already disclosed in this README.
 
 ## Known Limitations
 
-- **No backend/auth** — "Sign up" and "Sign in" just set a display name; there's no real authentication or per-user accounts.
+- **No backend/auth** — "Sign up" and "Sign in" validate input shape (email format, password length) client-side but there's no real authentication, password hashing, or per-user accounts — anyone can type any email and get in.
 - **Local-only leaderboard/feed** — the leaderboard and community feed are hardcoded sample data, not live from other users.
 - **Public API rate limits** — Nominatim and OSRM's public demo servers are used directly from the client with no API key. They're rate-limited and not meant for production traffic; expect throttling under heavy use.
 - **Single-user persistence** — progress is saved to the browser's `localStorage`, so it's local to one device/browser, not synced across devices.

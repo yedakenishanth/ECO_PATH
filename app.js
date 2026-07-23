@@ -183,8 +183,14 @@ function renderApp(s){showApp(s);}
 // ══════════════════════════════════════════
 //  AUTH
 // ══════════════════════════════════════════
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function doSignup(){
-  const name=document.getElementById('su-name').value.trim()||'User';
+  const name=document.getElementById('su-name').value.trim();
+  const email=document.getElementById('su-email').value.trim();
+  const pass=document.getElementById('su-pass').value;
+  if(!name){toast('Please enter your name');return;}
+  if(!EMAIL_RE.test(email)){toast('Please enter a valid email address');return;}
+  if(pass.length<8){toast('Password must be at least 8 characters');return;}
   state.user.name=name;
   document.getElementById('nav-avatar').textContent=name[0].toUpperCase();
   saveState();
@@ -192,7 +198,10 @@ function doSignup(){
 }
 function doSignin(){
   const email=document.getElementById('si-email').value.trim();
-  state.user.name=email?email.split('@')[0]:'Nishanth';
+  const pass=document.getElementById('si-pass').value;
+  if(!EMAIL_RE.test(email)){toast('Please enter a valid email address');return;}
+  if(!pass){toast('Please enter your password');return;}
+  state.user.name=email.split('@')[0];
   document.getElementById('nav-avatar').textContent=state.user.name[0].toUpperCase();
   saveState();
   showPage('app');
