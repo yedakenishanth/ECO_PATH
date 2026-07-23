@@ -1,30 +1,47 @@
 # EcoPath — Carbon-Conscious Commuting
 
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Leaflet](https://img.shields.io/badge/Leaflet.js-199900?logo=leaflet&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+
 EcoPath is a single-page web app that gamifies eco-friendly commuting. Users log trips, earn EcoCredits, unlock badges, climb a leaderboard, and redeem coupons — all designed to encourage lower-carbon transportation choices.
+
+**[Live demo →](https://yedakenishanth.github.io/ECO_PATH/)**
 
 ## Features
 
-- **Landing page** with hero section and feature highlights
-- **Auth flow** (sign up / sign in) UI
-- **Dashboard** with trip tracking and stats
-- **Community & rewards** — EcoCredits, coupons, and a live activity feed
-- **Achievements** — badges and a global leaderboard with levels/progress
-- **Map integration** via Leaflet.js
+| Area | What it does |
+|---|---|
+| **Route Planner** | Geocodes real addresses (Nominatim) and calculates real driving routes (OSRM), plotted live on a Leaflet map |
+| **Carbon comparison** | Compares CO2 output across 8 transport modes (walk, bike, e-bike, bus, train, carpool, EV, car) for the planned route |
+| **Live GPS Tracker** | Tracks an active trip in real time using device geolocation, with a simulated fallback when GPS is unavailable |
+| **EcoCredits & Levels** | Points-based reward system with 7 levels and progress bars |
+| **Badges** | 12 achievements unlocked by trip count, CO2 saved, streaks, and more |
+| **Coupons** | Auto-unlocked reward coupons every 300 EcoCredits |
+| **Community** | Leaderboard and a live activity feed |
+| **Eco Coach** | Chat-style assistant UI with a local fallback when no AI backend is configured |
+| **Persistence** | Progress (points, trips, badges, streak) is saved to `localStorage` and restored on reload |
 
 ## Tech Stack
 
-- Vanilla HTML, CSS, and JavaScript (no build step required)
-- [Leaflet.js](https://leafletjs.com/) for maps
+- Vanilla HTML, CSS, and JavaScript — no build step, no framework
+- [Leaflet.js](https://leafletjs.com/) for the interactive map
+- [Nominatim](https://nominatim.org/) for geocoding addresses
+- [OSRM](http://project-osrm.org/) for route calculation
 - Google Fonts (Sora, IBM Plex Mono)
+
+> **Note on "AI" features:** the landing page markets an "AI carbon engine." In this version the carbon math is a deterministic calculation (distance x emission factor per transport mode), not a machine-learning model — it's precise, but not "AI" in the predictive sense. The Eco Coach chat panel is wired to call the Anthropic API directly from the browser; without a backend proxy and API key this will fail and fall back to canned responses. See [Roadmap](#roadmap) below.
 
 ## Getting Started
 
-This is a static single-file app — no build tools or dependencies to install.
+This is a static app — no build tools or dependencies to install.
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/yedakenishanth/ecopath.git
-   cd ecopath
+   git clone https://github.com/yedakenishanth/ECO_PATH.git
+   cd ECO_PATH
    ```
 2. Open `index.html` directly in your browser, or serve it locally:
    ```bash
@@ -36,10 +53,31 @@ This is a static single-file app — no build tools or dependencies to install.
 
 ```
 .
-├── index.html      # Full application (markup, styles, and logic)
+├── index.html      # Page markup / structure only
+├── styles.css      # All styling
+├── app.js          # Application state, rendering, and logic
 ├── README.md
 └── LICENSE
 ```
+
+## Known Limitations
+
+- **No backend/auth** — "Sign up" and "Sign in" just set a display name; there's no real authentication or per-user accounts.
+- **Local-only leaderboard/feed** — the leaderboard and community feed are hardcoded sample data, not live from other users.
+- **Public API rate limits** — Nominatim and OSRM's public demo servers are used directly from the client with no API key. They're rate-limited and not meant for production traffic; expect throttling under heavy use.
+- **Single-user persistence** — progress is saved to the browser's `localStorage`, so it's local to one device/browser, not synced across devices.
+
+## Roadmap
+
+- [ ] Swap `localStorage` persistence for a real backend (e.g. Supabase/Firebase) with authentication and a genuine multi-user leaderboard
+- [ ] Move the Anthropic API calls behind a small server-side proxy so the Eco Coach and AI route analysis actually work (an API key can't safely live in client-side code)
+- [ ] Automated tests for the pure logic (`getLevel`, `logTrip`, badge checks) with Vitest
+- [ ] GitHub Actions workflow for linting/tests + auto-deploy to GitHub Pages
+- [ ] Basic accessibility pass (form labels, ARIA live regions for the toast/live-trip panel, keyboard nav)
+
+## Contributing
+
+Issues and PRs are welcome. For larger changes, please open an issue first to discuss what you'd like to change.
 
 ## License
 
