@@ -62,6 +62,7 @@ This is a static app — no build tools or dependencies to install.
 
 ## Changelog
 
+- **Fix:** geocoding (Nominatim) and routing (OSRM) results are now cached client-side (1 day for geocodes, 30 min for routes) to avoid re-hitting the public demo servers for repeat queries, and Nominatim calls are queued through a client-side throttle (~1.1s between requests) to respect its usage policy. The route planner also now ignores a second "Plan Route" click while one is already in flight.
 - **Fix (security):** trip origin/destination text was rendered via raw `innerHTML` in two places (Dashboard's Recent Trips card, Carbon Tracker's trip table) without escaping, and the Eco Coach chat echoed your own typed message unescaped too — all three now go through the existing `escapeHtml()` helper.
 - **Refactor:** persistence now goes through a small `storage.get()/set()/remove()` abstraction instead of calling `localStorage` directly everywhere, so swapping in a real backend later only touches one block of code.
 - **Fix:** sign-up/sign-in now validate email format and require a name and an 8+ character password before letting you in, instead of accepting any input silently. Still not real authentication — see Known Limitations.
@@ -73,7 +74,7 @@ This is a static app — no build tools or dependencies to install.
 
 - **No backend/auth** — "Sign up" and "Sign in" validate input shape (email format, password length) client-side but there's no real authentication, password hashing, or per-user accounts — anyone can type any email and get in.
 - **Local-only leaderboard/feed** — the leaderboard and community feed are hardcoded sample data, not live from other users.
-- **Public API rate limits** — Nominatim and OSRM's public demo servers are used directly from the client with no API key. They're rate-limited and not meant for production traffic; expect throttling under heavy use.
+- **Public API rate limits** — Nominatim and OSRM's public demo servers are used directly from the client with no API key. Results are cached and Nominatim requests are client-side throttled (~1.1s apart) to be a better citizen of their usage policy, but they're still not meant for real production traffic — a production deployment needs a self-hosted instance or a paid provider (e.g. Mapbox, Google Maps).
 - **Single-user persistence** — progress is saved to the browser's `localStorage`, so it's local to one device/browser, not synced across devices.
 
 ## Testing

@@ -413,28 +413,70 @@ function haversineKm(lat1,lon1,lat2,lon2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ── Simple TTL cache over the storage abstraction, for geocode/route
+// results. Cuts down repeat hits to Nominatim/OSRM's public demo
+// servers for the same query, which matters given their usage policies. ──
+const API_CACHE_KEY='ecopath_api_cache_v1';
+const GEOCODE_CACHE_TTL_MS=24*60*60*1000;   // addresses rarely change; cache a day
+const ROUTE_CACHE_TTL_MS=30*60*1000;        // routes/traffic can change; cache 30 min
+function cacheGet(key){
+  const cache=storage.get(API_CACHE_KEY)||{};
+  const entry=cache[key];
+  if(!entry||entry.expires<Date.now())return null;
+  return entry.value;
+}
+function cacheSet(key,value,ttlMs){
+  const cache=storage.get(API_CACHE_KEY)||{};
+  cache[key]={value,expires:Date.now()+ttlMs};
+  // keep the cache from growing unbounded — drop expired entries on every write
+  for(const k of Object.keys(cache)){if(cache[k].expires<Date.now())delete cache[k];}
+  storage.set(API_CACHE_KEY,cache);
+}
+
+// ── Client-side rate limiter for Nominatim, whose usage policy asks for
+// no more than ~1 request/second. Calls queue up and space themselves
+// out instead of firing in a burst (e.g. from a fast double-click). ──
+let nominatimQueue=Promise.resolve();
+function throttledNominatim(fn){
+  const run=nominatimQueue.then(async()=>{
+    const result=await fn();
+    await new Promise(r=>setTimeout(r,1100)); // hold the slot for ~1.1s before releasing
+    return result;
+  });
+  nominatimQueue=run.catch(()=>{}); // don't let one failure jam the queue
+  return run;
+}
+
 // Geocode address via Nominatim (OpenStreetMap).
 // NOTE: Nominatim's public demo API has a strict usage policy (max ~1 req/sec,
 // no heavy/bulk usage, valid User-Agent required). This is fine for occasional
 // personal use / demos but should be swapped for a self-hosted instance or a
 // paid geocoding provider before any real production traffic.
 async function geocodeAddress(query){
+  const cacheKey=`geocode:${query.trim().toLowerCase()}`;
+  const cached=cacheGet(cacheKey);
+  if(cached)return cached;
   const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
   let resp;
   try{
-    resp=await fetchWithRetry(url,{headers:{'User-Agent':'EcoPath/1.0 (demo app)'}},{retries:1,timeoutMs:8000});
+    resp=await throttledNominatim(()=>fetchWithRetry(url,{headers:{'User-Agent':'EcoPath/1.0 (demo app)'}},{retries:1,timeoutMs:8000}));
   }catch(err){
     throw new Error(`Could not reach location service: ${err.message}`);
   }
   const data=await resp.json();
   if(!data||data.length===0) throw new Error(`Location not found: "${query}"`);
-  return{lat:parseFloat(data[0].lat),lon:parseFloat(data[0].lon),name:data[0].display_name};
+  const result={lat:parseFloat(data[0].lat),lon:parseFloat(data[0].lon),name:data[0].display_name};
+  cacheSet(cacheKey,result,GEOCODE_CACHE_TTL_MS);
+  return result;
 }
 
 // Get route from OSRM (Open Source Routing Machine — free, no key).
 // Same caveat as above: the public demo server is rate-limited and not
 // intended for production load.
 async function getOSRMRoute(fromCoords,toCoords,profile='driving'){
+  const cacheKey=`route:${profile}:${fromCoords.lon.toFixed(4)},${fromCoords.lat.toFixed(4)};${toCoords.lon.toFixed(4)},${toCoords.lat.toFixed(4)}`;
+  const cached=cacheGet(cacheKey);
+  if(cached)return cached;
   const url=`https://router.project-osrm.org/route/v1/${profile}/${fromCoords.lon},${fromCoords.lat};${toCoords.lon},${toCoords.lat}?overview=full&geometries=geojson`;
   let resp;
   try{
@@ -444,11 +486,13 @@ async function getOSRMRoute(fromCoords,toCoords,profile='driving'){
   }
   const data=await resp.json();
   if(data.code!=='Ok'||!data.routes||data.routes.length===0) throw new Error('Route not found between these locations');
-  return{
+  const result={
     distKm:+(data.routes[0].distance/1000).toFixed(2),
     durationMin:Math.round(data.routes[0].duration/60),
     geometry:data.routes[0].geometry.coordinates // [[lon,lat],...]
   };
+  cacheSet(cacheKey,result,ROUTE_CACHE_TTL_MS);
+  return result;
 }
 
 function renderPlanner(){
@@ -567,10 +611,13 @@ function makeLiveMarker(){
   });
 }
 
+let planRouteInFlight=false;
 async function doPlanRoute(){
+  if(planRouteInFlight)return;
   const from=document.getElementById('p-from').value.trim();
   const to=document.getElementById('p-to').value.trim();
   if(!from||!to){toast('Please enter both From and To locations');return;}
+  planRouteInFlight=true;
 
   const btn=document.getElementById('plan-route-btn');
   const statusBox=document.getElementById('route-status-box');
@@ -649,6 +696,7 @@ async function doPlanRoute(){
     statusText.textContent=err.message||'Could not calculate route. Check locations and try again.';
     toast('Route error: '+err.message);
   }finally{
+    planRouteInFlight=false;
     btn.disabled=false;
     btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Plan Route`;
   }
